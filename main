@@ -1,0 +1,76 @@
+#include <iostream>
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+
+// Интерфейс для DBConnection
+class DBConnection {
+public:
+    virtual bool open() = 0;
+    virtual bool close() = 0;
+    virtual bool execQuery(const std::string& query) = 0;
+};
+
+// Мок-класс для DBConnection
+class MockDBConnection : public DBConnection {
+public:
+    MOCK_METHOD(bool, open, (), (override));
+    MOCK_METHOD(bool, close, (), (override));
+    MOCK_METHOD(bool, execQuery, (const std::string& query), (override));
+};
+
+class ClassThatUsesDB {
+public:
+    ClassThatUsesDB(DBConnection* db) : dbConnection(db) {}
+
+    bool openConnection() {
+        return dbConnection->open();
+    }
+
+    bool useConnection(const std::string& query) {
+        return dbConnection->execQuery(query);
+    }
+
+    bool closeConnection() {
+        return dbConnection->close();
+    }
+
+private:
+    DBConnection* dbConnection;
+};
+
+// Тесты
+TEST(ClassThatUsesDB, OpenConnection) {
+    MockDBConnection mockDB;
+    ClassThatUsesDB obj(&mockDB);
+
+    EXPECT_CALL(mockDB, open()).WillOnce(testing::Return(true));
+
+    bool result = obj.openConnection();
+    EXPECT_TRUE(result);
+}
+
+TEST(ClassThatUsesDB, UseConnection) {
+    MockDBConnection mockDB;
+    ClassThatUsesDB obj(&mockDB);
+
+    const std::string query = "SELECT * FROM table";
+    EXPECT_CALL(mockDB, execQuery(query)).WillOnce(testing::Return(true));
+
+    bool result = obj.useConnection(query);
+    EXPECT_TRUE(result);
+}
+
+TEST(ClassThatUsesDB, CloseConnection) {
+    MockDBConnection mockDB;
+    ClassThatUsesDB obj(&mockDB);
+
+    EXPECT_CALL(mockDB, close()).WillOnce(testing::Return(true));
+
+    bool result = obj.closeConnection();
+    EXPECT_TRUE(result);
+}
+
+int main(int argc, char** argv) {
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
